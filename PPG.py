@@ -169,14 +169,14 @@ class PPG:
             print("No se ha cargado ninguna señal PPG.")
             return None
 
-    def analizar_frecuencia_ppg(df, columna, fs, umbral_baja=3, umbral_alta=5, ventana_tamaño=1024, solapamiento=512):
+    def analizar_frecuencia_ppg_por_fila(df, fila, fs, umbral_baja=3, umbral_alta=5, ventana_tamaño=1024, solapamiento=512):
         """
-        Analiza la frecuencia de la señal PPG en un DataFrame.
+        Analiza la frecuencia de una señal PPG específica contenida en una fila de un DataFrame.
         Detecta segmentos con frecuencias bajas y altas utilizando FFT.
 
         Parámetros:
             df (DataFrame): El DataFrame que contiene la señal PPG.
-            columna (str): El nombre de la columna con los datos de la señal PPG.
+            fila (int): El índice de la fila que contiene la señal PPG.
             fs (float): La frecuencia de muestreo de la señal.
             umbral_baja (float): El límite superior de la frecuencia baja (Hz).
             umbral_alta (float): El límite inferior de la frecuencia alta (Hz).
@@ -187,18 +187,19 @@ class PPG:
             rangos_bajos (list): Los índices de los segmentos con frecuencias bajas.
             rangos_altos (list): Los índices de los segmentos con frecuencias altas.
         """
-        signal = df[columna].values
+        # Extraemos la señal de la fila seleccionada
+        signal = df.iloc[fila].values
         n_muestras = len(signal)
         
         rangos_bajos = []
         rangos_altos = []
         
-        # Realizamos el análisis por ventanas deslizantes
+        # Iteramos sobre la señal con ventanas deslizantes
         for start in range(0, n_muestras - ventana_tamaño, ventana_tamaño - solapamiento):
             end = start + ventana_tamaño
             segmento = signal[start:end]
             
-            # Aplicamos la FFT a cada segmento
+            # Calculamos la FFT del segmento
             fft_vals = np.fft.fft(segmento)
             fft_freqs = np.fft.fftfreq(len(fft_vals), 1 / fs)
             
@@ -210,28 +211,26 @@ class PPG:
             idx_max = np.argmax(fft_vals)  # Índice de la frecuencia dominante
             frecuencia_dominante = fft_freqs[idx_max]  # Frecuencia dominante
             
-            # Clasificamos según el umbral de frecuencia
+            # Clasificamos el segmento según la frecuencia dominante
             if frecuencia_dominante < umbral_baja:
-                rangos_bajos.append((start, end))  # Añadimos el rango de la frecuencia baja
+                rangos_bajos.append((start, end))  # Añadimos el rango de frecuencia baja
             elif frecuencia_dominante > umbral_alta:
-                rangos_altos.append((start, end))  # Añadimos el rango de la frecuencia alta
-        
-            # Graficamos la señal y las frecuencias dominantes
-            plt.plot(signal)
-            plt.title('Señal PPG con frecuencias altas y bajas')
-            
-            for (start, end) in rangos_bajos:
-                plt.axvspan(start, end, color='green', alpha=0.3, label='Frecuencia Baja')
-            
-            for (start, end) in rangos_altos:
-                plt.axvspan(start, end, color='red', alpha=0.3, label='Frecuencia Alta')
-            
-            plt.legend()
-            plt.xlabel('Tiempo (o índice de la muestra)')
-            plt.ylabel('Amplitud')
-            plt.show()
+                rangos_altos.append((start, end))  # Añadimos el rango de frecuencia alta
 
-            return rangos_bajos, rangos_altos
+        # Graficamos toda la señal y marcamos las zonas
+        plt.plot(signal, label="Señal PPG")
+        for (start, end) in rangos_bajos:
+            plt.axvspan(start, end, color='green', alpha=0.3, label='Frecuencia Baja')
+        for (start, end) in rangos_altos:
+            plt.axvspan(start, end, color='red', alpha=0.3, label='Frecuencia Alta')
+
+        plt.legend()
+        plt.xlabel('Tiempo (índice de muestra)')
+        plt.ylabel('Amplitud')
+        plt.title('Análisis de frecuencias en la señal PPG')
+        plt.show()
+
+        return rangos_bajos, rangos_altos
         def indicenormalidad(self, archivo, paciente):
             """
             Verifica si un paciente específico presenta anormalidad cardíaca basada en la última columna.
