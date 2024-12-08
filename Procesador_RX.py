@@ -91,6 +91,12 @@ class ProcesadorDeImagen:
         sobrepuesta = cv2.addWeighted(self.imagen_procesada, 0.5, imagen2, 0.5, 0)
         self.imagen_procesada = sobrepuesta
         print("Imágenes superpuestas.")
+    def guardar_imagen(self, ruta_salida):
+        """Guarda la imagen procesada en la ruta especificada."""
+        if self.imagen_procesada is not None:
+            cv2.imwrite(ruta_salida, self.imagen_procesada)  # Guardar la imagen en la ruta dada
+        else:
+            raise ValueError("No hay una imagen cargada para guardar.")
 
 
 def main():
