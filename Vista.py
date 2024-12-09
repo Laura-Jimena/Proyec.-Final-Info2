@@ -12,7 +12,7 @@ matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 import numpy as np
-# from Procesador_PPG import *
+from Procesador_PPG import *
 import masc_rc
 import cuenta_rc
 import masc2_rc
@@ -326,8 +326,6 @@ class ecg(QMainWindow):
             print("Error al cargar los datos")
             return None
 
-    # def Derivacion1(self,ecg):
-    #     self.ecg=self.Cargar_arch(ecg)
     
     def Derivacion2(self):
         if self.ecg:
@@ -419,49 +417,90 @@ class ppg(QMainWindow):
         super().__init__(parent)
         loadUi('PPG.ui',self)
         self._ventana_menu=parent
+        self.layout=QVBoxLayout(self.graf_ppg)
+        self.ppg=None
+        self.archivo=None
         self.setup()
     def setup(self):
         self.volver_bot.clicked.connect(self.opcion_volver)
         self.subir_arc.clicked.connect(self.Abrir_archivo)
-    #     self.HR.clicked.connect(self.hr) #graf
-    #     # self.HR_baja.clicked.connect(self.hrbaja)#graf
-    #     self.norm_car.clicked.connect(self.normalidad) #datotxt
-    #     self.graf_suav.clicked.connect(self.graficasuave) #graf
-    # def Cargar_arch(self,archivo):
-    #     archp=PPG()
-    #     arch=arch.openfile(archivo)
-    #     if archivo is not None:
-    #         ppg=arch.Asignarseñal()
-    #     else:
-    #         print("El archivo que cargaste no es valido.")
-
-    #     return ppg
-    # def hr(self,ppg):
-    #     enter=1
-    #     fs=ppg.obtener_frecuecncia_muestreo(2500)
-    #     ppg.analizar_frecuencia_ppg(ppg,enter,fs,umbral_baja=3,umbral_alta=5,ventana_tamaño=1024,solapamiento=512)
-    # def normalidad(self,ppg):
-    #     enter=1
-    #     ppg.indicenormalidad(ppg,enter)
-    # def graficasuave(self,ppg):
-    #     enter=1
-    #     fs=ppg.obtener_frecuecncia_muestreo(2500)
-    #     señal=ppg.graficarseñal(ppg,enter)
-    #     ppg.butter_lowpas_filter(ppg.iloc[0:2500],1:2.values.ravel(),3,fs,order=5)
-
-    
-
-    def opcion_volver(self):
-        self.hide()
-        self._ventana_menu.show()
+        self.HR.clicked.connect(self.hr) #graf
+        self.norm_car.clicked.connect(self.normalidad) #datotxt
+        self.graf_suav.clicked.connect(self.graficasuave) #graf
     def Abrir_archivo(self):
         archivo, _ = QFileDialog.getOpenFileName(self, "Abrir archivo", "", "Todos los archivos (*)")
         if archivo:
             msm=f"Archivo seleccionado: {archivo}"
             self.archivo_enc.setText(msm)
+            self.ppg=self.Cargar_arch(archivo)
+            if self.ppg is None:
+                self.archivo_enc.setText("Eror al cargar archivo.")
+            # else:
+            #     msm="No se seleccionó ningún archivo"
+            #     self.archivo_enc.setText(msm)    
         else:
             msm="No se seleccionó ningún archivo"
             self.archivo_enc.setText(msm)
+    
+    def Cargar_arch(self,archivo):
+        archp=PPG()
+        contenido=archp.openfile(archivo)
+        if contenido is not None:
+            df=archp.Asignarseñal(contenido)
+            return archp
+        else:
+            msm="El archivo que cargaste no es valido."
+            self.archivo_enc.setText(msm)
+    
+    def hr(self):
+        if self.ppg is not None:  
+            suj=self.sujetos_cont.value()
+            fs=self.ppg.obtener_frecuencia_muestreo(250)
+            self.most_txt.setText(f"Frecuencia de muestreo: {fs} Hz")
+            fig=self.ppg.analizar_frecuencia_ppg_por_fila(self.ppg.VerSeñalframe(),suj,fs,umbral_baja=3,umbral_alta=5,ventana_tamaño=1024,solapamiento=512)
+            canvas=FigureCanvas(fig)
+            canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            canvas.updateGeometry()
+            for i in reversed(range(self.layout.count())):
+                self.layout.itemAt(i).widget().setParent(None)
+        # Agregar el canvas al layout
+            self.layout.addWidget(canvas)
+        else:
+            msm="No se ha cargado ningún archivo."
+            self.most_txt.setText(msm)
+
+    def normalidad(self):
+        suj=self.sujetos_cont.value()
+        if self.ppg is not None:
+            norm=self.ppg.indicenormalidad(self.ppg.VerSeñalframe(),suj)
+            self.most_txt.setText(norm)
+            
+        else:
+            norm="No se ingresó un archivo válido."
+            self.most_txt.setText(norm)
+        for i in reversed(range(self.layout.count())):
+            self.layout.itemAt(i).widget().setParent(None)
+    def graficasuave(self):
+        if self.ppg is not None:
+            suj=self.sujetos_cont.value()
+            fs=self.ppg.obtener_frecuencia_muestreo(250)
+            self.most_txt.setText(f"Frecuencia de muestreo: {fs} Hz")
+            fig=self.ppg.graficarseñal(self.ppg.VerSeñalframe(),suj)
+            canvas=FigureCanvas(fig)
+            canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            canvas.updateGeometry()
+            for i in reversed(range(self.layout.count())):
+                self.layout.itemAt(i).widget().setParent(None)
+        # Agregar el canvas al layout
+            self.layout.addWidget(canvas)
+        else:
+            norm="No se ingresó un archivo válido."
+            self.most_txt.setText(norm)
+
+    def opcion_volver(self):
+        self.hide()
+        self._ventana_menu.show()
+    
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
