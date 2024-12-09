@@ -1,4 +1,4 @@
-from ModeloP import *
+from Modelo import *
 from Vista import *
 import sys
 from PyQt5.QtWidgets import QApplication
