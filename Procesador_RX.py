@@ -1,6 +1,9 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Qt5Agg')
+from matplotlib.figure import Figure 
 
 class ProcesadorDeImagen:
 
@@ -56,21 +59,25 @@ class ProcesadorDeImagen:
         cv2.setMouseCallback("Anotación", poner_circulo)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
+    # def crear_grafico(self,datos):
 
     def histograma(self):
         """Muestra el histograma de la imagen procesada."""
+        fig = Figure(figsize=(5, 4), dpi=100)
+        ax = fig.add_subplot(111)
         if len(self.imagen_procesada.shape) == 3:  # Imagen a color
             for i, color in enumerate(['b', 'g', 'r']):
                 histograma = cv2.calcHist([self.imagen_procesada], [i], None, [256], [0, 256])
-                plt.plot(histograma, color=color)
+                ax.plot(histograma, color=color)
         else:  # Imagen en escala de grises
             histograma = cv2.calcHist([self.imagen_procesada], [0], None, [256], [0, 256])
-            plt.plot(histograma, color='gray')
+            ax.plot(histograma, color='gray')
 
-        plt.title("Histograma")
-        plt.xlabel("Intensidad de píxel")
-        plt.ylabel("Número de píxeles")
-        plt.show()
+        ax.set_title("Histograma")
+        ax.set_xlabel("Intensidad de píxel")
+        ax.set_ylabel("Número de píxeles")
+        return fig
+    
 
     def rotar(self, angulo):
         """Rota la imagen por un ángulo dado."""

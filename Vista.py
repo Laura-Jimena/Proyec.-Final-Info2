@@ -1,10 +1,18 @@
 import sys
-from PyQt5.QtWidgets import QMainWindow, QDialog,QMessageBox,QFileDialog,QGraphicsScene,QGraphicsPixmapItem, QApplication
+from PyQt5.QtWidgets import QMainWindow, QDialog,QMessageBox,QFileDialog,QGraphicsScene,QGraphicsPixmapItem, QApplication, QFrame,QVBoxLayout,QSizePolicy
 from PyQt5.QtGui import QDoubleValidator, QRegExpValidator,QIntValidator,QPixmap,QPainter
 from PyQt5.QtCore import Qt,QRegExp
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from PyQt5.uic import loadUi
 from Controlador import *
 from Procesador_RX import *
+from Procesador_ECG import *
+import matplotlib
+matplotlib.use('Qt5Agg') 
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+import numpy as np
+# from Procesador_PPG import *
 import masc_rc
 import cuenta_rc
 import masc2_rc
@@ -107,6 +115,7 @@ class rx(QMainWindow):
         self.imag_sub.setScene(self.escena)
         self.escena2 = QGraphicsScene(self)
         self.mostrar_imagen.setScene(self.escena2)
+        self.layout=QVBoxLayout(self.graf_rx)
         self.setup()
     def setup(self):
         self.volver_bot.clicked.connect(self.opcion_volver)
@@ -189,7 +198,7 @@ class rx(QMainWindow):
 
         # Verificar cuáles CheckButtons están seleccionados
         if self.graf_histo.isChecked():
-            self.histograma(self.arch)
+            self.most_histog(self.arch)
             opciones_activadas = True
         if self.brillo.isChecked():
             self.pbrillo(self.arch,b,c)
@@ -222,8 +231,14 @@ class rx(QMainWindow):
         return arch
     def pbrillo(self,arch,b,c):
         arch.cambiarBC(b,c)
-    def histograma(self,arch):
-        arch.histograma()
+    def most_histog(self,arch):
+        fig=arch.histograma()
+        canvas=FigureCanvas(fig)
+        canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        canvas.updateGeometry()
+        for i in reversed(range(self.layout.count())):
+            self.layout.itemAt(i).widget().setParent(None)
+        self.layout.addWidget(canvas)
     def pfiltro(self,arch,filt):
         arch.aplicar_filtro(filt)
     def atamano(self,arch,tam):
@@ -278,22 +293,126 @@ class ecg(QMainWindow):
         super().__init__(parent)
         loadUi('ECG.ui',self)
         self._ventana_menu=parent
+        self.ecg=None
+        self.layout=QVBoxLayout(self.graf_ecg)
         self.setup()
     def setup(self):
         self.volver_bot.clicked.connect(self.opcion_volver)
         self.subir_arc.clicked.connect(self.Abrir_archivo)
-    def opcion_volver(self):
-        self.hide()
-        self._ventana_menu.show()
+        self.der_V2.clicked.connect(self.DerivacionV2)
+        self.der_2.clicked.connect(self.Derivacion2)
+        self.der_v5.clicked.connect(self.DerivacionV5)
+        self.graf_comp.clicked.connect(self.Grafica_comp)
+
     def Abrir_archivo(self):
         archivo, _ = QFileDialog.getOpenFileName(self, "Abrir archivo", "", "Todos los archivos (*)")
         if archivo:
             msm=f"Archivo seleccionado: {archivo}"
             self.archivo_enc.setText(msm)
+            self.ecg=self.Cargar_arch(archivo)
+            if self.ecg is None:
+                self.archivo_enc.setText("Eror al cargar archivo.")
         else:
             msm="No se seleccionó ningún archivo"
             self.archivo_enc.setText(msm)
+        # return self.ecg
+    
+    def Cargar_arch(self,archivo):
+        ecg=ECGSignal(archivo)
+        if ecg.load_data():
+            print("Datos cargados correctamente.")
+            return ecg
+        else:
+            print("Error al cargar los datos")
+            return None
 
+    # def Derivacion1(self,ecg):
+    #     self.ecg=self.Cargar_arch(ecg)
+    
+    def Derivacion2(self):
+        if self.ecg:
+            graf=self.ecg.graficar_derivacion_II(3000)
+            if graf:
+                canvas=FigureCanvas(graf)
+                canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+                canvas.updateGeometry()
+                for i in reversed(range(self.layout.count())):
+                    self.layout.itemAt(i).widget().setParent(None)
+                self.layout.addWidget(canvas)
+                self.ecg.CalcularEstadisticasII()
+                estad=self.ecg.imprimir_estadisticas("II")
+                self.mostrar_txt.setText(estad)
+            else:
+                msm="No se pudo general el grafico."
+                self.archivo_enc.setText(msm)
+        else:
+            msm="No se ha cargado un archivo válido."
+            self.mostrar_txt.setText(msm)
+
+    def DerivacionV5(self,ecg):
+        if self.ecg:
+            graf=self.ecg.graficar_derivacion_V5(3000)
+            if graf:
+                canvas=FigureCanvas(graf)
+                canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+                canvas.updateGeometry()
+                for i in reversed(range(self.layout.count())):
+                    self.layout.itemAt(i).widget().setParent(None)
+                self.layout.addWidget(canvas)
+                self.ecg.CalcularEstadisticasV5()
+                estad=self.ecg.imprimir_estadisticas("V5")
+                self.mostrar_txt.setText(estad)
+            else:
+                msm="No se pudo general el grafico."
+                self.archivo_enc.setText(msm)
+        else:
+            msm="No se ha cargado un archivo válido."
+            self.mostrar_txt.setText(msm)
+    def DerivacionV2(self,ecg):
+        if self.ecg:
+            graf=self.ecg.graficar_derivacion_V2(3000)
+            if graf:
+                canvas=FigureCanvas(graf)
+                canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+                canvas.updateGeometry()
+                for i in reversed(range(self.layout.count())):
+                    self.layout.itemAt(i).widget().setParent(None)
+                self.layout.addWidget(canvas)
+                self.ecg.CalcularEstadisticasV2()
+                estad=self.ecg.imprimir_estadisticas("V2")
+                self.mostrar_txt.setText(estad)
+            else:
+                msm="No se pudo general el grafico."
+                self.archivo_enc.setText(msm)
+        else:
+            msm="No se ha cargado un archivo válido."
+            self.mostrar_txt.setText(msm)
+    
+
+    def Grafica_comp(self,ecg):
+        if self.ecg:
+            graf=self.ecg.graficar_todas_las_derivaciones(3000)
+            if graf:
+                canvas=FigureCanvas(graf)
+                canvas.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+                canvas.updateGeometry()
+                for i in reversed(range(self.layout.count())):
+                    self.layout.itemAt(i).widget().setParent(None)
+                self.layout.addWidget(canvas)
+                msm="Mostrando grafica de comparación de DERIVACIONES"
+                self.mostrar_txt.setText(msm)
+            else:
+                msm="No se pudo general el grafico."
+                self.archivo_enc.setText(msm)
+        else:
+            msm="No se ha cargado un archivo válido."
+            self.mostrar_txt.setText(msm)
+
+
+    def opcion_volver(self):
+        self.hide()
+        self._ventana_menu.show()
+   
          
 class ppg(QMainWindow):
     def __init__(self, parent=None):
@@ -304,6 +423,34 @@ class ppg(QMainWindow):
     def setup(self):
         self.volver_bot.clicked.connect(self.opcion_volver)
         self.subir_arc.clicked.connect(self.Abrir_archivo)
+    #     self.HR.clicked.connect(self.hr) #graf
+    #     # self.HR_baja.clicked.connect(self.hrbaja)#graf
+    #     self.norm_car.clicked.connect(self.normalidad) #datotxt
+    #     self.graf_suav.clicked.connect(self.graficasuave) #graf
+    # def Cargar_arch(self,archivo):
+    #     archp=PPG()
+    #     arch=arch.openfile(archivo)
+    #     if archivo is not None:
+    #         ppg=arch.Asignarseñal()
+    #     else:
+    #         print("El archivo que cargaste no es valido.")
+
+    #     return ppg
+    # def hr(self,ppg):
+    #     enter=1
+    #     fs=ppg.obtener_frecuecncia_muestreo(2500)
+    #     ppg.analizar_frecuencia_ppg(ppg,enter,fs,umbral_baja=3,umbral_alta=5,ventana_tamaño=1024,solapamiento=512)
+    # def normalidad(self,ppg):
+    #     enter=1
+    #     ppg.indicenormalidad(ppg,enter)
+    # def graficasuave(self,ppg):
+    #     enter=1
+    #     fs=ppg.obtener_frecuecncia_muestreo(2500)
+    #     señal=ppg.graficarseñal(ppg,enter)
+    #     ppg.butter_lowpas_filter(ppg.iloc[0:2500],1:2.values.ravel(),3,fs,order=5)
+
+    
+
     def opcion_volver(self):
         self.hide()
         self._ventana_menu.show()
