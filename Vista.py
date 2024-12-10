@@ -21,49 +21,85 @@ import ppg_rc
 import ecg_rc
 
 
-#Ventana de Usuario y contraseña.
+
 class pprincipal(QMainWindow):
+    """ Clase que representa la ventana principal de la aplicación.
+    Gestiona el inicio de sesión y la creación de nuevas cuentas. """
     def __init__(self, parent=None):
         super().__init__(parent)
         loadUi('pprincipal.ui',self)
+        self._mi_controlador=Controlador
         self.setup()
     def setup(self):
-        # self.ingres_boton.clicked.connect(self.Verificar_cred)
-        self.ingres_boton.clicked.connect(self.Abrir_menu)
+        """Define las funciones que se cumplen cuando el usuario interactua con la interfaz."""
+        self.usuario_input.setValidator(QRegExpValidator(QRegExp("[a-zA-Z ]+")))
+        self.contra_input.setValidator(QIntValidator())
+        self.ingres_boton.clicked.connect(self.Verificar_cred)
+        # self.ingres_boton.clicked.connect(self.Abrir_menu)
         self.bot_cuenta.clicked.connect(self.Abrir_nuev_cuenta)
     def Verificar_cred(self):
-        cusuario=self.usu_input.text()
+        """Verifica las credenciales ingresadas por el usuario y, si son correctas, abre el menú principal."""
+        cusuario=self.usuario_input.text()
         ccontrasena=self.contra_input.text()
-        self._ventana_pprincipal.Recibir_cred(cusuario,ccontrasena)
-    def Abrir_menu(self):
-        ventana_menu=menu(self)
-        self.hide()
-        ventana_menu.show()
+        cred=self._mi_controlador.Recibir_cred(cusuario,ccontrasena)
+        if cred==False:
+            self.usuario_input.clear()  # Limpiar los QLineEdit
+            self.contra_input.clear()
+        elif cred==True:
+            ventana_menu=menu(self)
+            self.hide()
+            self.usuario_input.clear()  # Limpiar los QLineEdit
+            self.contra_input.clear()
+            ventana_menu.show()
     def Abrir_nuev_cuenta(self):
+        """Abre la ventana Nueva Cuenta, para la creación de una cuenta, en caso que el usuario no la tenga."""
         ventana_cuenta=nueva_cuenta(self)
         self.hide()
         ventana_cuenta.show()
     def Recibir_nuev_cuenta(self, nomb,id,telef,email,usua,contras):
-        self.__mi_controlador.Recibir_nueva_cuenta(self, nomb,id,telef,email,usua,contras)
+        """Recibe la información de una nueva cuenta y la pasa al controlador para su procesamiento.
+        Inputs:
+            nomb (str): Nombre del nuevo usuario.
+            id (str): ID del nuevo usuario.
+            telef (str): Número de teléfono del nuevo usuario.
+            email (str): Correo electrónico del nuevo usuario.
+            usua (str): Nombre de usuario.
+            contras (str): Contraseña del usuario."""
+        self._mi_controlador.Recibir_nueva_cuenta(nomb,id,telef,email,usua,contras)
     def Recibir_cred(self,usu,con):
-        self.__mi_controlador.Recibir_cred(usu,con)
+        """
+        Recibe las credenciales ingresadas por el usuario y las pasa al controlador para validarlas.
+        
+        Args:
+            usu (str): Nombre de usuario.
+            con (str): Contraseña del usuario.
+        """
+        self._mi_controlador.Recibir_cred(usu,con)
     def Asignar_cont(self,c):
-        self.__mi_controlador=c
+        """Asigna un controlador a la ventana principal para manejar la lógica de la aplicación."""
+        self._mi_controlador=c
 class nueva_cuenta(QMainWindow):
+    """Clase que representa la ventana para la creación de una nueva cuenta de usuario. 
+    Permite al usuario ingresar los datos necesarios y enviarlos para su procesamiento en 
+    el controlador y modelo."""
     def __init__(self, parent=None):
         super().__init__(parent)
         loadUi('nueva_cuenta.ui',self)
         self._ventana_pprincipal=parent
         self.setup()
     def setup(self):
+        """Define las funciones que se cumplen cuando el usuario interactua con la interfaz."""
         self.nomb_input.setValidator(QRegExpValidator(QRegExp("[a-zA-Z ]+")))
         self.id_input.setValidator(QIntValidator())
         self.telef_input.setValidator(QIntValidator())
         self.usua_input.setValidator(QRegExpValidator(QRegExp("[a-zA-Z ]+")))
-        self.contra_input.setValidator(QRegExpValidator(QRegExp("[a-zA-Z0-9 ]+")))
+        self.contra_input.setValidator(QIntValidator())
         self.acept_boton.clicked.connect(self.opc_aceptar)
         self.volver_boton.clicked.connect(self.opc_volver)
     def opc_aceptar(self):
+        """Recoge los datos ingresados por el usuario en la ventana de creación de cuenta y los pasa a la ventana principal
+        para su procesamiento.
+        """
         nomb =  self.nomb_input.text()
         id = self.id_input.text()
         telef= self.telef_input.text() ### Consulatr metodo ver 
@@ -74,39 +110,50 @@ class nueva_cuenta(QMainWindow):
         self._ventana_pprincipal.show()
         self.hide()
     def opc_volver(self):
+        """Regresa a la ventana principal sin guardar los datos ingresados."""
         self.hide()
         self._ventana_pprincipal.show()
 
 class menu(QMainWindow):
+    """Clase que representa la ventana del menú principal de la aplicación. Permite al usuario navegar 
+    entre diferentes secciones como RX, ECG y PPG, o cerrar sesión."""
     def __init__(self, parent=None):
         super().__init__(parent)
         loadUi('Menu.ui',self)
         self._ventana_pprincipal=parent
         self.setup()
     def setup(self):
+        """Define las funciones que se cumplen cuando el usuario interactua con la interfaz."""
         self.rx_bot.clicked.connect(self.Abrir_rx)
         self.ecg_bot.clicked.connect(self.Abrir_ecg)
         self.ppg_bot.clicked.connect(self.Abrir_ppg)
         self.bot_cerrar_ses.clicked.connect(self.Cerrar_ses)
     def Cerrar_ses(self):
+        """Regresa a la ventana principal y oculta la ventana del menú."""
         self._ventana_pprincipal.show()
         self.hide()
     def Abrir_ppg(self):
+        """Abre la ventana relacionada con PPG (fotopletismografía)."""
         ventana_ppg=ppg(self)
         self.hide()
         ventana_ppg.show()
 
     def Abrir_ecg(self):
+        """Abre la ventana relacionada con ECG (electrocardiograma)."""
         ventana_ecg=ecg(self)
         self.hide()
         ventana_ecg.show()
 
     def Abrir_rx(self):
+        """Abre la ventana relacionada con RX (radiografías)."""
         ventana_rx=rx(self)
         self.hide()
         ventana_rx.show()
 
 class rx(QMainWindow):
+    """Clase que representa la ventana para procesar imágenes de RX. Permite al usuario cargar archivos de imagen,
+    aplicar diferentes filtros y transformaciones, y guardar las imágenes procesadas.
+    """
     def __init__(self,parent=None):
         super().__init__(parent)
         loadUi('rx.ui',self)
@@ -118,19 +165,15 @@ class rx(QMainWindow):
         self.layout=QVBoxLayout(self.graf_rx)
         self.setup()
     def setup(self):
+        """Define las funciones que se cumplen cuando el usuario interactua con la interfaz."""
         self.volver_bot.clicked.connect(self.opcion_volver)
         self.subir_arc.clicked.connect(self.Abrir_archivo)
         self.aceptar_bot.clicked.connect(self.Aceptar_opciones)
         self.guardar_img_proc.clicked.connect(self.guardar_imagen_perm)
-        # b=self.brillo_lev.value()
-        # c=self.contra_lev.value()
-        # tam=self.tamano_lev.value()
-        # ang=self.angulo.value()
-        # filt=self.filtro_opc.currentText() 
         self.subir_arc_2.clicked.connect(self.Abrir_archivo2)
-        # return b,c,tam,ang,filt
     def Abrir_archivo2(self):
-        archivo2, _ = QFileDialog.getOpenFileName(self, "Abrir archivo", "", "Todos los archivos (*)")
+        """Permite al usuario cargar un segundo archivo de imagen en la interfaz."""
+        archivo2, _ = QFileDialog.getOpenFileName(self, "Abrir archivo", "",  "Imágenes PNG (*.png)")
         if archivo2:
             msm=f"Archivo seleccionado: {archivo2}"
             self.archivo_enc_2.setText(msm)
@@ -141,7 +184,8 @@ class rx(QMainWindow):
 
         
     def Abrir_archivo(self):
-        archivo, _ = QFileDialog.getOpenFileName(self, "Abrir archivo", "", "Todos los archivos (*)")
+        """Permite al usuario cargar un archivo de imagen en la escena y ajustarlo al tamaño de la vista."""
+        archivo, _ = QFileDialog.getOpenFileName(self, "Abrir archivo", "",  "Imágenes PNG (*.png)")
         if archivo:
             msm=f"Archivo seleccionado: {archivo}"
             self.archivo_enc.setText(msm)
@@ -175,8 +219,8 @@ class rx(QMainWindow):
             
         return archivo
     def Aceptar_opciones(self):
+        """ Procesa la imagen cargada de acuerdo a las opciones seleccionadas por el usuario."""
         opciones_activadas=False
-        
         archivo = self.archivo_enc.toPlainText().replace("Archivo seleccionado: ", "").strip()
         archivo2 = self.archivo_enc_2.toPlainText().replace("Archivo seleccionado: ", "").strip()
         # arch=self.carg_arch(archivo)
@@ -193,8 +237,8 @@ class rx(QMainWindow):
             self._ventana_menu.show()  # Mostrar la ventana del menú
             return
         # Verificar si se cargó el archivo
-        # if not archivo:
-        #     self.archivo_enc.setText("Por favor, cargue un archivo antes de continuar.")
+        if not archivo:
+            self.archivo_enc.setText("Por favor, cargue un archivo antes de continuar.")
 
         # Verificar cuáles CheckButtons están seleccionados
         if self.graf_histo.isChecked():
@@ -227,6 +271,8 @@ class rx(QMainWindow):
 
     
     def carg_arch(self,archivo):
+        """ Carga un archivo de imagen utilizando la clase `ProcesadorDeImagen`.
+        Inputs: Ruta del archivo de la imagen a cargar."""
         arch=ProcesadorDeImagen(archivo)
         return arch
     def pbrillo(self,arch,b,c):
@@ -261,7 +307,8 @@ class rx(QMainWindow):
 
         # Ajustar el área visible de la escena al tamaño de la imagen escalada
         self.escena2.setSceneRect(0, 0, pixmap_width, pixmap_height)
-    def guardar_imagen_perm(self, arch):
+    def guardar_imagen_perm(self):
+        """Guarda la imagen procesada en una carpeta a elección del usuario."""
         if self.arch is None:
             print("No se ha cargado ninguna imagen")
     # Abrir un cuadro de diálogo para que el usuario seleccione la ruta de guardado
@@ -278,17 +325,17 @@ class rx(QMainWindow):
 
 
     def opcion_volver(self):
+        """Regresa a la ventana menú."""
         self.hide()
         self._ventana_menu.show()
           
-    def Mover_archivo_rx(self,archivo):
-        self.__mi_controlador.Mover_archivo_rx(archivo)
 
-
-    def Asignar_cont(self,c):
-        self.__mi_controlador=c
         
 class ecg(QMainWindow):
+    """Esta clase representa la ventana de la interfaz gráfica 
+    para trabajar con señales ECG. 
+    Permite cargar archivos ECG, mostrar diferentes derivaciones,
+      y realizar cálculos estadísticos sobre ellas."""
     def __init__(self, parent=None):
         super().__init__(parent)
         loadUi('ECG.ui',self)
@@ -297,6 +344,7 @@ class ecg(QMainWindow):
         self.layout=QVBoxLayout(self.graf_ecg)
         self.setup()
     def setup(self):
+        """Define las funciones que se cumplen cuando el usuario interactua con la interfaz."""
         self.volver_bot.clicked.connect(self.opcion_volver)
         self.subir_arc.clicked.connect(self.Abrir_archivo)
         self.der_V2.clicked.connect(self.DerivacionV2)
@@ -305,7 +353,9 @@ class ecg(QMainWindow):
         self.graf_comp.clicked.connect(self.Grafica_comp)
 
     def Abrir_archivo(self):
-        archivo, _ = QFileDialog.getOpenFileName(self, "Abrir archivo", "", "Todos los archivos (*)")
+        """ Abre un cuadro de diálogo para seleccionar un archivo ECG 
+        ,cargarlo en la clase `ecg` y retorna la ruta del archivo."""
+        archivo, _ = QFileDialog.getOpenFileName(self, "Abrir archivo", "", "Archivos MAT (*.mat)")
         if archivo:
             msm=f"Archivo seleccionado: {archivo}"
             self.archivo_enc.setText(msm)
@@ -318,6 +368,7 @@ class ecg(QMainWindow):
         # return self.ecg
     
     def Cargar_arch(self,archivo):
+        """ Carga el archivo ECG utilizando la clase `ECGSignal` usando la ruta relativa."""
         ecg=ECGSignal(archivo)
         if ecg.load_data():
             print("Datos cargados correctamente.")
@@ -328,6 +379,8 @@ class ecg(QMainWindow):
 
     
     def Derivacion2(self):
+        """ Grafica la derivación II de la señal ECG y
+          muestra las estadísticas de la derivación II."""
         if self.ecg:
             graf=self.ecg.graficar_derivacion_II(3000)
             if graf:
@@ -347,7 +400,9 @@ class ecg(QMainWindow):
             msm="No se ha cargado un archivo válido."
             self.mostrar_txt.setText(msm)
 
-    def DerivacionV5(self,ecg):
+    def DerivacionV5(self):
+        """Grafica la derivación V5 de la señal ECG y
+          muestra las estadísticas de la derivación V5."""
         if self.ecg:
             graf=self.ecg.graficar_derivacion_V5(3000)
             if graf:
@@ -366,7 +421,8 @@ class ecg(QMainWindow):
         else:
             msm="No se ha cargado un archivo válido."
             self.mostrar_txt.setText(msm)
-    def DerivacionV2(self,ecg):
+    def DerivacionV2(self):
+        """ Grafica la derivación V2 de la señal ECG y muestra las estadísticas de la derivación V2."""
         if self.ecg:
             graf=self.ecg.graficar_derivacion_V2(3000)
             if graf:
@@ -387,7 +443,11 @@ class ecg(QMainWindow):
             self.mostrar_txt.setText(msm)
     
 
-    def Grafica_comp(self,ecg):
+    def Grafica_comp(self):
+        """Grafica todas las derivaciones ( II, V2, V5)
+          de la señal ECG en una comparación.
+
+        Si no hay un archivo cargado, muestra un mensaje de error."""
         if self.ecg:
             graf=self.ecg.graficar_todas_las_derivaciones(3000)
             if graf:
@@ -408,11 +468,16 @@ class ecg(QMainWindow):
 
 
     def opcion_volver(self):
+        """Regresa a la ventana menú."""
         self.hide()
         self._ventana_menu.show()
    
          
 class ppg(QMainWindow):
+    """" Esta clase representa la ventana de la interfaz gráfica para
+    trabajar con señales de PPG (fotopletismografía).
+    Permite cargar archivos de señales PPG, visualizar gráficos 
+    y realizar análisis sobre ellos, como el análisis de la frecuencia y la normalidad de las señales."""
     def __init__(self, parent=None):
         super().__init__(parent)
         loadUi('PPG.ui',self)
@@ -422,27 +487,28 @@ class ppg(QMainWindow):
         self.archivo=None
         self.setup()
     def setup(self):
+        """Define las funciones que se cumplen cuando el usuario interactua con la interfaz."""
         self.volver_bot.clicked.connect(self.opcion_volver)
         self.subir_arc.clicked.connect(self.Abrir_archivo)
         self.HR.clicked.connect(self.hr) #graf
         self.norm_car.clicked.connect(self.normalidad) #datotxt
         self.graf_suav.clicked.connect(self.graficasuave) #graf
     def Abrir_archivo(self):
-        archivo, _ = QFileDialog.getOpenFileName(self, "Abrir archivo", "", "Todos los archivos (*)")
+        """ Abre un cuadro de diálogo para seleccionar un archivo PPG y cargarlo en la clase `ppg`."""
+        archivo, _ = QFileDialog.getOpenFileName(self, "Abrir archivo", "", "Archivos permitidos (*.csv *.mat *.dat)")
         if archivo:
             msm=f"Archivo seleccionado: {archivo}"
             self.archivo_enc.setText(msm)
             self.ppg=self.Cargar_arch(archivo)
             if self.ppg is None:
                 self.archivo_enc.setText("Eror al cargar archivo.")
-            # else:
-            #     msm="No se seleccionó ningún archivo"
-            #     self.archivo_enc.setText(msm)    
+            
         else:
             msm="No se seleccionó ningún archivo"
             self.archivo_enc.setText(msm)
     
     def Cargar_arch(self,archivo):
+        """Carga el archivo PPG utilizando la clase `PPG`."""
         archp=PPG()
         contenido=archp.openfile(archivo)
         if contenido is not None:
@@ -453,6 +519,8 @@ class ppg(QMainWindow):
             self.archivo_enc.setText(msm)
     
     def hr(self):
+        """Realiza un análisis de la frecuencia de la señal PPG
+          y muestra el gráfico asociado."""
         if self.ppg is not None:  
             suj=self.sujetos_cont.value()
             fs=self.ppg.obtener_frecuencia_muestreo(250)
@@ -470,6 +538,8 @@ class ppg(QMainWindow):
             self.most_txt.setText(msm)
 
     def normalidad(self):
+        """ Calcula el índice de normalidad de la señal PPG
+        y muestra el resultado."""
         suj=self.sujetos_cont.value()
         if self.ppg is not None:
             norm=self.ppg.indicenormalidad(self.ppg.VerSeñalframe(),suj)
@@ -481,6 +551,7 @@ class ppg(QMainWindow):
         for i in reversed(range(self.layout.count())):
             self.layout.itemAt(i).widget().setParent(None)
     def graficasuave(self):
+        """ Muestra un gráfico de la señal PPG."""
         if self.ppg is not None:
             suj=self.sujetos_cont.value()
             fs=self.ppg.obtener_frecuencia_muestreo(250)
@@ -501,9 +572,3 @@ class ppg(QMainWindow):
         self.hide()
         self._ventana_menu.show()
     
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    ventana=pprincipal()
-    ventana.show()
-    sys.exit(app.exec_())
